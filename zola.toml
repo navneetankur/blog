@@ -5,7 +5,9 @@ base_url = "https://blog.navneetaman.com"
 compile_sass = false
 
 # Whether to build a search index to be used later on by a JavaScript library
-build_search_index = true
+build_search_index = false
+theme = "tabi"
+title = "Navneet's Blog"
 
 [markdown]
 
@@ -13,4 +15,11 @@ build_search_index = true
 theme = "catppuccin-mocha"
 
 [extra]
-# Put all your custom variables here
+
+theme = "auto"
+socials = [
+  # Configure socials here
+]
+menu = [
+  # Configure menu bar here
+]

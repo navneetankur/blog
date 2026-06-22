@@ -1,7 +1,7 @@
-# The Browser That Wasn't Guilty: A CPU Mystery I Finally Solved
-
-## How I blamed Vivaldi, switched to Opera, blamed Opera too, and almost moved a config folder before finding the real culprit
-
++++
+title = "The Browser and the CPU: A Mystery I Finally Solved"
+date = 2026-06-21
++++
 ## The Shortlist
 
 Picking Vivaldi in the first place wasn't an accident — I'd actually run a small comparison before settling on it:
@@ -31,10 +31,12 @@ Case closed. Or so I thought.
 ## The Sequel Nobody Asked For
 
 Months later, same scene: I'm in Neovim, the fan ramps up, and I check my system monitor. Opera. 30% CPU. I open it. One tab. `docs.rs`.
+![htop is opened with neovim on the side](htop.png)
 
 Déjà vu.
 
 This time I had a theory ready-made: somewhere along the way, I'd moved my browser config directories off my SSD and onto a spinning hard drive to free up space. Chromium-based browsers do read and write to their profile directories fairly often — could a slower disk somehow translate into elevated *CPU* usage? It felt like a stretch even as I typed it out, but it was the only variable I could point to that connected both browsers. Vivaldi's profile had been on the HDD. So was Opera's now. Maybe that was the common thread.
+![detective board with sticky notes and threads connecting them](board.png)
 
 Before yanking the config folder back onto the SSD on a hunch, I decided to actually investigate instead of guessing.
 
