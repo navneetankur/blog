@@ -1,5 +1,7 @@
-# Sunshine Streaming Adventure: Wayland to X11 and Back
-
++++
+title = "Sunshine Streaming Adventure: Wayland to X11 and Back"
+date = 2026-06-23
++++
 *A journey through KMS capture, CRTC mysteries, and cherry-picked kernel commits*
 
 ---
