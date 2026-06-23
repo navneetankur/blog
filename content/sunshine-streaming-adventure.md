@@ -18,7 +18,8 @@ Here's the full story, in case you're stuck somewhere in the same maze.
 
 - **Window manager:** Sway (Wayland) on the desktop, Moonlight on the laptop
 - **GPUs:** Intel integrated + Nvidia discrete
-- **Game launcher:** `uwu-run` / `prime-run` to force the game onto the Nvidia card
+- **Display:** monitor connected to the Intel card
+- **Game launcher:** `uwu-run` / `prime-run` to run the game on the Nvidia card while displaying through Intel
 - **Capture method (target):** KMS
 
 The first problem appeared immediately.
@@ -27,9 +28,9 @@ The first problem appeared immediately.
 
 ## Problem 1: The Disappearing Cursor
 
-After starting the stream in Moonlight and switching to the game's workspace, the cursor would vanish. Not a showstopper, but annoying enough to investigate. I filed [an issue on the Sunshine repo](https://github.com/LizardByte/Sunshine/issues/5258). No progress came from that.
+After starting the stream in Moonlight and switching to the game's workspace, the cursor would vanish while using KMS capture. Switching to wlroots capture traded one problem for another: black screen. I filed [an issue on the Sunshine repo](https://github.com/LizardByte/Sunshine/issues/5258) for the black screen. No progress came from that.
 
-Digging deeper, I found the underlying cause: wlroots is mid-refactor on its capture methods, and Sunshine is simultaneously experimenting with a Vulkan wlroots renderer *and* a Vulkan encoder. Two moving targets. Breakage was inevitable and a fix wasn't coming soon.
+Digging deeper, I found: wlroots is mid-refactor on its capture methods, and Sunshine is simultaneously experimenting with a Vulkan wlroots renderer *and* a Vulkan encoder. Two moving targets. Breakage was inevitable and a fix wasn't coming soon.
 
 **Decision: abandon Wayland for now, try X11.**
 
@@ -41,7 +42,7 @@ Switching to i3 on X11 was straightforward. KMS capture worked, P1 (the cursor b
 
 Then came screen tearing.
 
-I vaguely remembered a Hacker News post about a `TearFree` option being added to the modesetting driver. I set the option. Nothing changed. More searching revealed the uncomfortable truth: the feature hadn't been released yet. It was sitting in the main branch of xf86-video-modesetting, not in any stable release.
+I vaguely remembered a Hacker News post about a `TearFree` option being added to the modesetting driver. I set the option. Nothing changed. More searching revealed the uncomfortable truth: the feature hadn't been released yet. It was sitting in the main branch of xorg-server, not in any stable release.
 
 So: what now?
 
@@ -61,7 +62,7 @@ Built it. Ran it. Tearing gone. Simple, in the end.
 
 Right. The game. Let me actually stream it.
 
-**Intel display + `prime-run` game:** captured and streamed fine. P1 also resolved itself somewhere along the way — probably an update I'd applied before initially raising the issue.
+**Intel display + `prime-run` game:** captured and streamed fine.
 
 **Nvidia display:** only the X11 capture method worked. KMS capture saw nothing.
 
@@ -89,13 +90,17 @@ modetest -M nvidia-drm -c
 
 Every connector showed `CRTC = 0`.
 
-The implication: the Nvidia card isn't actively driving any display. KMS has nothing to capture because from KMS's perspective, the Nvidia card isn't doing anything. The proprietary X11 driver renders without going through KMS — it has its own path. So there's no KMS framebuffer to grab.
+ChatGPT's immediate read: "Your monitor isn't actually connected to the Nvidia card."
+
+This required some convincing. After a few rounds of back-and-forth, I had persuaded the model that I am not (completely) blind yet, and that yes, the monitor is connected to Nvidia, I can see it, it is physically there, I am looking at it right now.
+
+Its next theory was more useful: KMS has nothing to capture because from KMS's perspective, the Nvidia card isn't doing anything. The proprietary X11 driver renders without going through KMS — it has its own path. So there's no KMS framebuffer to grab.
 
 **Sway and Wayland, on the other hand, require KMS.** If Nvidia wants to support Wayland at all, it has to make KMS work. And if KMS is working, Sunshine can capture it.
 
 ---
 
-## The Reluctant Return to Wayland
+## The Return to Wayland
 
 I hadn't successfully driven a monitor through the Nvidia card on Sway in a long time. Last time I tried, it was painful. But the logic was sound, so:
 
@@ -109,7 +114,8 @@ Expected. Then I poked at it. Config changes, kernel parameters, some combinatio
 CRTC = 1 → monitor works on Sway
 ```
 
-KMS capture: works.
+KMS capture(Nvidia display): works.
+Intel display + prime-run game: KMS capture works fine. The original cursor issue also disappeared on its own — possibly due to updates I'd applied before raising the black screen issue on the Sunshine repo.
 
 Switched back to i3 to confirm: `CRTC = 0` again. Back to Sway: `CRTC = 1`.
 
@@ -117,13 +123,13 @@ The Nvidia card only properly exposes itself to KMS under Wayland. X11, with the
 
 ---
 
-## The Actual Fix: Kernel Parameter Placement
+## Kernel Parameter Placement
 
-After enough digging, the root cause of the `CRTC = 0` issue came down to **where** the `modeset` parameter was being set.
+After enough digging, the root cause of the `CRTC = 0` issue, on sway came down to **where** the `modeset` parameter was being set.
 
 The common advice is to put `options nvidia-drm modeset=1` in `/etc/modprobe.d/nvidia.conf`. Many wikis say Nvidia sets this by default now anyway.
 
-Both of those statements are misleading in practice.
+Both of those statements may be technically true — but they weren't enough for my GTX 1080 setup.
 
 **What actually works:**
 
